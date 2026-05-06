@@ -1,0 +1,615 @@
+<!-- [ignoring loop detection] -->
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MITSUYOSHI | Cloud Staff Portal</title>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { theme: '#D4AF37', dark: '#030305', panel: '#0a0a0d' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Playfair Display', 'serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #030305;
+            color: #e4e4e7;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .glass {
+            background: rgba(20, 20, 25, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar-item.active {
+            background: rgba(212, 175, 55, 0.1);
+            color: #D4AF37;
+            border-right: 3px solid #D4AF37;
+        }
+
+        .glow-border:focus {
+            border-color: #D4AF37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+            outline: none;
+        }
+
+        .btn-theme {
+            background: #D4AF37;
+            color: black;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-theme:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #030305;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #D4AF37;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen">
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay" class="fixed inset-0 z-[100] bg-dark flex items-center justify-center p-6">
+        <div class="max-w-md w-full glass p-10 rounded-3xl text-center">
+            <div class="mb-6 relative inline-block">
+                <div class="absolute inset-0 bg-theme/20 blur-xl rounded-full"></div>
+                <img src="../icon.png" alt="Logo" class="w-16 h-16 relative z-10 mx-auto">
+            </div>
+            <h1 class="text-2xl font-serif italic text-white mb-2">Staff Cloud Access</h1>
+            <p class="text-gray-500 text-xs uppercase tracking-widest mb-8">Authentification Requise</p>
+            <div class="space-y-4 text-left">
+                <input type="email" id="login-email" placeholder="Email Staff"
+                    class="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-sm glow-border">
+                <input type="password" id="login-pass" placeholder="Mot de passe"
+                    class="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-sm glow-border">
+                <button onclick="handleLogin()" id="login-btn"
+                    class="w-full btn-theme py-4 rounded-xl uppercase text-[10px] tracking-widest">Connexion
+                    Cloud</button>
+            </div>
+            <p id="login-error" class="text-red-500 text-[10px] mt-4 opacity-0 uppercase font-bold text-center">Accès
+                refusé</p>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <nav class="w-64 glass border-r border-white/5 flex flex-col hidden" id="main-nav">
+        <div class="p-8">
+            <div class="flex items-center gap-3">
+                <img src="../icon.png" alt="Logo" class="w-8 h-8">
+                <div class="flex flex-col">
+                    <span
+                        class="text-[10px] font-bold tracking-[0.3em] uppercase text-white leading-none">MITSUYOSHI</span>
+                    <span class="text-[8px] font-bold tracking-[0.4em] uppercase text-theme">Staff Cloud</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-grow py-6">
+            <button onclick="showSection('dashboard')"
+                class="sidebar-item w-full flex items-center gap-4 px-8 py-4 text-xs font-semibold uppercase tracking-widest text-gray-400 hover:text-white transition-all active"
+                id="nav-dashboard">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
+                    </path>
+                </svg>
+                Dashboard
+            </button>
+            <button onclick="showSection('clients')"
+                class="sidebar-item w-full flex items-center gap-4 px-8 py-4 text-xs font-semibold uppercase tracking-widest text-gray-400 hover:text-white transition-all"
+                id="nav-clients">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                    </path>
+                </svg>
+                Clients
+            </button>
+            <button onclick="showSection('agenda')"
+                class="sidebar-item w-full flex items-center gap-4 px-8 py-4 text-xs font-semibold uppercase tracking-widest text-gray-400 hover:text-white transition-all"
+                id="nav-agenda">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z">
+                    </path>
+                </svg>
+                Agenda
+            </button>
+            <button onclick="showSection('tasks')"
+                class="sidebar-item w-full flex items-center gap-4 px-8 py-4 text-xs font-semibold uppercase tracking-widest text-gray-400 hover:text-white transition-all"
+                id="nav-tasks">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4">
+                    </path>
+                </svg>
+                Tasks
+            </button>
+        </div>
+
+        <div class="p-8 border-t border-white/5">
+            <button onclick="handleLogout()"
+                class="text-[10px] uppercase font-bold tracking-widest text-gray-600 hover:text-red-400 transition-colors">Déconnexion
+                Cloud</button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow overflow-y-auto p-10 hidden" id="main-content">
+
+        <!-- DASHBOARD SECTION -->
+        <section id="section-dashboard" class="space-y-10">
+            <header>
+                <h2 class="text-3xl font-serif italic text-white mb-2">Dashboard Intégral</h2>
+                <p class="text-[10px] uppercase tracking-[0.3em] text-gray-500">Vue d'ensemble de l'écosystème</p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass p-8 rounded-3xl border-theme/20">
+                    <p class="text-[10px] uppercase text-gray-500 mb-2 font-bold">Clients Totaux</p>
+                    <p class="text-4xl font-serif text-white italic" id="stat-clients">0</p>
+                </div>
+                <div class="glass p-8 rounded-3xl border-theme/20">
+                    <p class="text-[10px] uppercase text-gray-500 mb-2 font-bold">Revenu Total</p>
+                    <p class="text-4xl font-serif text-theme italic" id="stat-revenue">0 €</p>
+                </div>
+                <div class="glass p-8 rounded-3xl border-theme/20">
+                    <p class="text-[10px] uppercase text-gray-500 mb-2 font-bold">En Attente</p>
+                    <p class="text-4xl font-serif text-red-400 italic" id="stat-pending">0 €</p>
+                </div>
+                <div class="glass p-8 rounded-3xl border-theme/20">
+                    <p class="text-[10px] uppercase text-gray-500 mb-2 font-bold">Tâches en cours</p>
+                    <p class="text-4xl font-serif text-white italic" id="stat-tasks">0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div class="glass p-8 rounded-3xl min-h-[300px]">
+                    <h3 class="text-xs font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-4">Activités
+                        Récentes</h3>
+                    <div id="recent-activity" class="space-y-4 text-xs text-gray-500">
+                        <p class="text-center py-4 opacity-30 italic">Chargement des données...</p>
+                    </div>
+                </div>
+                <div class="glass p-8 rounded-3xl min-h-[300px]">
+                    <h3 class="text-xs font-bold uppercase tracking-widest mb-6 border-b border-white/5 pb-4">Tâches
+                        Urgentes</h3>
+                    <div id="urgent-tasks" class="space-y-4">
+                        <p class="text-center py-4 opacity-30 italic">Chargement des données...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CLIENTS SECTION -->
+        <section id="section-clients" class="hidden space-y-10">
+            <header class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-3xl font-serif italic text-white mb-2">Gestion Clients</h2>
+                    <p class="text-[10px] uppercase tracking-[0.3em] text-gray-500">Liste exhaustive et suivi financier
+                    </p>
+                </div>
+                <button onclick="toggleModal('client-modal')"
+                    class="btn-theme px-6 py-3 rounded-xl text-[10px] uppercase tracking-widest">+ Nouveau
+                    Client</button>
+            </header>
+
+            <div class="glass rounded-3xl overflow-hidden border border-white/5">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-white/5 text-[10px] uppercase tracking-widest text-gray-500">
+                        <tr>
+                            <th class="p-6">Client</th>
+                            <th class="p-6">Bot / Statut</th>
+                            <th class="p-6">Finances</th>
+                            <th class="p-6">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="client-table-body" class="divide-y divide-white/5 text-gray-300 text-center">
+                        <tr>
+                            <td colspan="4" class="p-10 opacity-30 italic">Chargement de la base de données Cloud...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- AGENDA SECTION -->
+        <section id="section-agenda" class="hidden space-y-10">
+            <header class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-3xl font-serif italic text-white mb-2">Agenda Staff</h2>
+                    <p class="text-[10px] uppercase tracking-[0.3em] text-gray-500">Notes et événements textuels</p>
+                </div>
+                <button onclick="toggleModal('agenda-modal')"
+                    class="btn-theme px-6 py-3 rounded-xl text-[10px] uppercase tracking-widest">+ Ajouter une
+                    note</button>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="agenda-container">
+                <p class="col-span-full text-center py-20 opacity-30 italic">Récupération des événements...</p>
+            </div>
+        </section>
+
+        <!-- TASKS SECTION -->
+        <section id="section-tasks" class="hidden space-y-10">
+            <header class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-3xl font-serif italic text-white mb-2">Task Manager</h2>
+                    <p class="text-[10px] uppercase tracking-[0.3em] text-gray-500">Optimisation du workflow</p>
+                </div>
+                <div class="flex gap-4">
+                    <input type="text" id="task-input" placeholder="Nouvelle tâche..."
+                        class="bg-black/40 border border-white/10 px-4 py-2 rounded-xl text-xs glow-border w-64 text-white">
+                    <button onclick="dbAddTask()"
+                        class="btn-theme px-6 py-2 rounded-xl text-[10px] uppercase tracking-widest">Ajouter</button>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass p-6 rounded-3xl border-t-2 border-theme/50 bg-theme/5">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest mb-6 flex justify-between items-center">
+                        À faire <span class="bg-theme text-black px-2 py-0.5 rounded-full text-[8px]"
+                            id="count-todo">0</span>
+                    </h3>
+                    <div id="tasks-todo" class="space-y-4"></div>
+                </div>
+                <div class="glass p-6 rounded-3xl border-t-2 border-blue-500/50 bg-blue-500/5">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest mb-6 flex justify-between items-center">
+                        En cours <span class="bg-blue-500 text-white px-2 py-0.5 rounded-full text-[8px]"
+                            id="count-doing">0</span>
+                    </h3>
+                    <div id="tasks-doing" class="space-y-4"></div>
+                </div>
+                <div class="glass p-6 rounded-3xl border-t-2 border-green-500/50 bg-green-500/5">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest mb-6 flex justify-between items-center">
+                        Terminé <span class="bg-green-500 text-white px-2 py-0.5 rounded-full text-[8px]"
+                            id="count-done">0</span>
+                    </h3>
+                    <div id="tasks-done" class="space-y-4"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL CLIENT -->
+    <div id="client-modal" class="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center p-6 hidden">
+        <div class="glass w-full max-w-2xl rounded-3xl p-10 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-serif italic text-white mb-8">Nouveau Profil Client</h3>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="col-span-1">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Nom</label>
+                    <input type="text" id="c-nom"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                </div>
+                <div class="col-span-1">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Prénom</label>
+                    <input type="text" id="c-prenom"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                </div>
+                <div class="col-span-1">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Bot Utilisé</label>
+                    <select id="c-bot"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                        <option value="Mitsuyoshi">Mitsuyoshi Bot</option>
+                        <option value="Phoenix">Phoenix Bot</option>
+                        <option value="GoldExpert">GoldExpert IA</option>
+                        <option value="XTREM">XTREM Bot</option>
+                    </select>
+                </div>
+                <div class="col-span-1">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Type de Compte</label>
+                    <select id="c-type"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                        <option value="Personnel">Personnel</option>
+                        <option value="Prop Firm">Prop Firm</option>
+                    </select>
+                </div>
+                <div class="col-span-1">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Montant Payé (€)</label>
+                    <input type="number" id="c-paid"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white"
+                        value="0">
+                </div>
+                <div class="col-span-1">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Montant Attendu (€)</label>
+                    <input type="number" id="c-due"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white"
+                        value="0">
+                </div>
+                <div class="col-span-2">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Description / Notes</label>
+                    <textarea id="c-desc" rows="4"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-4 mt-10">
+                <button onclick="dbSaveClient()" id="btn-save-client"
+                    class="flex-grow btn-theme py-4 rounded-xl text-[10px] uppercase tracking-widest">Enregistrer
+                    Cloud</button>
+                <button onclick="toggleModal('client-modal')"
+                    class="px-10 border border-white/10 text-gray-500 py-4 rounded-xl text-[10px] uppercase tracking-widest hover:text-white transition-colors">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL AGENDA -->
+    <div id="agenda-modal" class="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center p-6 hidden">
+        <div class="glass w-full max-w-md rounded-3xl p-10">
+            <h3 class="text-2xl font-serif italic text-white mb-8">Nouvelle Note Agenda</h3>
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Titre / Sujet</label>
+                    <input type="text" id="a-title"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Date</label>
+                    <input type="date" id="a-date"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Contenu</label>
+                    <textarea id="a-content" rows="4"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-4 mt-10">
+                <button onclick="dbSaveAgenda()"
+                    class="flex-grow btn-theme py-4 rounded-xl text-[10px] uppercase tracking-widest">Ajouter au
+                    Cloud</button>
+                <button onclick="toggleModal('agenda-modal')"
+                    class="px-10 border border-white/10 text-gray-500 py-4 rounded-xl text-[10px] uppercase tracking-widest hover:text-white transition-colors">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. SUPABASE CONFIG
+        const SB_URL = "https://fjnmxlnyhjifgwxccyhe.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbm14bG55aGppZmd3eGNjeWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODQ2OTAsImV4cCI6MjA5MzY2MDY5MH0.i399f4l-BtlY4ydk8Igns6eo5RkR19yq2MYpCW_2N6k";
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- AUTH ---
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pass').value;
+            const btn = document.getElementById('login-btn');
+
+            btn.innerText = "Vérification...";
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                document.getElementById('login-error').innerText = "Accès refusé : Identifiants incorrects";
+                gsap.to('#login-error', { opacity: 1, duration: 0.3 });
+                btn.innerText = "Connexion Cloud";
+            } else {
+                location.reload();
+            }
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            location.reload();
+        }
+
+        // --- NAVIGATION & UI ---
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${sectionId}`).classList.remove('hidden');
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(`nav-${sectionId}`).classList.add('active');
+            gsap.from(`#section-${sectionId}`, { opacity: 0, y: 10, duration: 0.3 });
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                gsap.from(modal.querySelector('.glass'), { scale: 0.95, opacity: 0, duration: 0.3, ease: "back.out(1.7)" });
+            } else { modal.classList.add('hidden'); }
+        }
+
+        // --- DATA STATE & OPS ---
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                document.getElementById('login-overlay').remove();
+                document.getElementById('main-nav').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                loadAllData();
+            }
+        }
+
+        async function loadAllData() {
+            const { data: clients } = await supabaseClient.from('clients').select('*').order('created_at', { ascending: false });
+            const { data: agenda } = await supabaseClient.from('agenda').select('*').order('date', { ascending: true });
+            const { data: tasks } = await supabaseClient.from('tasks').select('*');
+
+            renderClients(clients || []);
+            renderAgenda(agenda || []);
+            renderTasks(tasks || []);
+            renderDashboard(clients || [], tasks || []);
+        }
+
+        // --- DB ACTIONS ---
+        async function dbSaveClient() {
+            const btn = document.getElementById('btn-save-client');
+            const originalText = btn.innerText;
+            btn.innerText = "Enregistrement...";
+
+            const client = {
+                nom: document.getElementById('c-nom').value,
+                prenom: document.getElementById('c-prenom').value,
+                bot: document.getElementById('c-bot').value,
+                type: document.getElementById('c-type').value,
+                paid: parseFloat(document.getElementById('c-paid').value) || 0,
+                due: parseFloat(document.getElementById('c-due').value) || 0,
+                desc: document.getElementById('c-desc').value
+            };
+
+            if (!client.nom || !client.prenom) return alert('Nom et Prénom requis');
+
+            const { error } = await supabaseClient.from('clients').insert([client]);
+            btn.innerText = originalText;
+
+            if (!error) {
+                toggleModal('client-modal');
+                ['c-nom', 'c-prenom', 'c-paid', 'c-due', 'c-desc'].forEach(id => document.getElementById(id).value = '');
+                loadAllData();
+            } else { alert("Erreur d'enregistrement"); }
+        }
+
+        async function dbDeleteClient(id) {
+            if (confirm('Supprimer ce client définitivement ?')) {
+                await supabaseClient.from('clients').delete().eq('id', id);
+                loadAllData();
+            }
+        }
+
+        async function dbSaveAgenda() {
+            const note = {
+                title: document.getElementById('a-title').value,
+                date: document.getElementById('a-date').value,
+                content: document.getElementById('a-content').value
+            };
+            if (!note.title) return;
+            const { error } = await supabaseClient.from('agenda').insert([note]);
+            if (!error) {
+                toggleModal('agenda-modal');
+                ['a-title', 'a-date', 'a-content'].forEach(id => document.getElementById(id).value = '');
+                loadAllData();
+            }
+        }
+
+        async function dbDeleteAgenda(id) {
+            if (confirm('Supprimer cette note ?')) {
+                await supabaseClient.from('agenda').delete().eq('id', id);
+                loadAllData();
+            }
+        }
+
+        async function dbAddTask() {
+            const text = document.getElementById('task-input').value;
+            if (!text) return;
+            await supabaseClient.from('tasks').insert([{ text, status: 'todo' }]);
+            document.getElementById('task-input').value = '';
+            loadAllData();
+        }
+
+        async function dbMoveTask(id, status) {
+            await supabaseClient.from('tasks').update({ status }).eq('id', id);
+            loadAllData();
+        }
+
+        async function dbDeleteTask(id) {
+            await supabaseClient.from('tasks').delete().eq('id', id);
+            loadAllData();
+        }
+
+        // --- RENDERING ---
+        function renderDashboard(clients, tasks) {
+            document.getElementById('stat-clients').innerText = clients.length;
+            const totalRevenue = clients.reduce((acc, c) => acc + c.paid, 0);
+            const totalPending = clients.reduce((acc, c) => acc + c.due, 0);
+            document.getElementById('stat-revenue').innerText = totalRevenue.toLocaleString() + " €";
+            document.getElementById('stat-pending').innerText = totalPending.toLocaleString() + " €";
+            document.getElementById('stat-tasks').innerText = tasks.filter(t => t.status !== 'done').length;
+
+            document.getElementById('recent-activity').innerHTML = clients.slice(0, 5).map(c => `
+                <div class="flex justify-between items-center bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                    <span class="text-gray-300">Nouveau client : <b class="text-white">${c.prenom} ${c.nom}</b></span>
+                    <span class="text-[8px] text-theme font-bold uppercase">${c.bot}</span>
+                </div>`).join('') || '<p class="text-center py-4 opacity-30">Aucun client récent.</p>';
+
+            document.getElementById('urgent-tasks').innerHTML = tasks.filter(t => t.status === 'todo').slice(0, 3).map(t => `
+                <div class="bg-white/[0.02] p-4 rounded-xl border-l-2 border-theme text-xs text-gray-300">${t.text}</div>`).join('') || '<p class="text-center py-4 opacity-30">Aucune tâche urgente.</p>';
+        }
+
+        function renderClients(clients) {
+            document.getElementById('client-table-body').innerHTML = clients.map(c => `
+                <tr class="hover:bg-white/[0.03] transition-colors">
+                    <td class="p-6 font-bold text-white text-sm">${c.prenom} ${c.nom}<br><span class="text-[8px] text-gray-500 font-bold uppercase">${c.type}</span></td>
+                    <td class="p-6"><span class="px-2 py-0.5 bg-theme/10 text-theme rounded text-[9px] font-bold uppercase">${c.bot}</span></td>
+                    <td class="p-6"><span class="text-green-400 font-bold">${c.paid.toLocaleString()}€</span><br><span class="text-red-400 text-[10px]">Dû: ${c.due.toLocaleString()}€</span></td>
+                    <td class="p-6">
+                        <button onclick="dbDeleteClient('${c.id}')" class="text-gray-600 hover:text-red-500 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                </tr>`).join('') || '<tr><td colspan="4" class="p-20 text-center opacity-20 italic">Base de données vide.</td></tr>';
+        }
+
+        function renderAgenda(agenda) {
+            document.getElementById('agenda-container').innerHTML = agenda.map(a => `
+                <div class="glass p-8 rounded-3xl relative group border-white/5 hover:border-theme/30 transition-all">
+                    <button onclick="dbDeleteAgenda('${a.id}')" class="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-red-500">X</button>
+                    <div class="text-[9px] text-theme font-bold uppercase mb-2 tracking-widest">${new Date(a.date).toLocaleDateString('fr-FR')}</div>
+                    <h4 class="text-white font-serif italic text-xl mb-4">${a.title}</h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">${a.content}</p>
+                </div>`).join('') || '<p class="col-span-full text-center py-20 opacity-30 italic">Agenda vide.</p>';
+        }
+
+        function renderTasks(tasks) {
+            const columns = { todo: document.getElementById('tasks-todo'), doing: document.getElementById('tasks-doing'), done: document.getElementById('tasks-done') };
+            const counts = { todo: 0, doing: 0, done: 0 };
+            Object.values(columns).forEach(c => c.innerHTML = '');
+
+            tasks.forEach(t => {
+                counts[t.status]++;
+                const div = document.createElement('div');
+                div.className = "p-5 bg-black/40 border border-white/5 rounded-2xl group relative hover:border-white/20 transition-all";
+                div.innerHTML = `
+                    <p class="text-xs text-gray-200 mb-6">${t.text}</p>
+                    <div class="flex justify-between items-center border-t border-white/5 pt-4">
+                        <div class="flex gap-2 text-[8px] uppercase font-bold text-gray-600">
+                            ${t.status !== 'todo' ? `<button onclick="dbMoveTask('${t.id}', 'todo')" class="hover:text-white">To do</button>` : ''}
+                            ${t.status !== 'doing' ? `<button onclick="dbMoveTask('${t.id}', 'doing')" class="hover:text-theme">Doing</button>` : ''}
+                            ${t.status !== 'done' ? `<button onclick="dbMoveTask('${t.id}', 'done')" class="hover:text-green-400">Done</button>` : ''}
+                        </div>
+                        <button onclick="dbDeleteTask('${t.id}')" class="text-red-500 opacity-0 group-hover:opacity-100 transition-all">X</button>
+                    </div>`;
+                columns[t.status].appendChild(div);
+            });
+            ['todo', 'doing', 'done'].forEach(s => document.getElementById(`count-${s}`).innerText = counts[s]);
+        }
+
+        checkSession();
+    </script>
+</body>
+
+</html>
