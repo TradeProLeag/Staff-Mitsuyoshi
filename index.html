@@ -470,28 +470,35 @@
         async function dbSaveClient() {
             const btn = document.getElementById('btn-save-client');
             const originalText = btn.innerText;
-            btn.innerText = "Enregistrement...";
-
+            
             const client = {
-                nom: document.getElementById('c-nom').value,
-                prenom: document.getElementById('c-prenom').value,
+                nom: document.getElementById('c-nom').value.trim(),
+                prenom: document.getElementById('c-prenom').value.trim(),
                 bot: document.getElementById('c-bot').value,
                 type: document.getElementById('c-type').value,
                 paid: parseFloat(document.getElementById('c-paid').value) || 0,
                 due: parseFloat(document.getElementById('c-due').value) || 0,
-                desc: document.getElementById('c-desc').value
+                notes: document.getElementById('c-desc').value
             };
-
+            
             if (!client.nom || !client.prenom) return alert('Nom et Prénom requis');
 
+            btn.innerText = "Synchronisation Cloud...";
+            btn.disabled = true;
+
             const { error } = await supabaseClient.from('clients').insert([client]);
+            
             btn.innerText = originalText;
+            btn.disabled = false;
 
             if (!error) {
                 toggleModal('client-modal');
                 ['c-nom', 'c-prenom', 'c-paid', 'c-due', 'c-desc'].forEach(id => document.getElementById(id).value = '');
                 loadAllData();
-            } else { alert("Erreur d'enregistrement"); }
+            } else { 
+                console.error(error);
+                alert("Erreur Cloud : " + error.message); 
+            }
         }
 
         async function dbDeleteClient(id) {
@@ -564,7 +571,12 @@
             document.getElementById('client-table-body').innerHTML = clients.map(c => `
                 <tr class="hover:bg-white/[0.03] transition-colors">
                     <td class="p-6 font-bold text-white text-sm">${c.prenom} ${c.nom}<br><span class="text-[8px] text-gray-500 font-bold uppercase">${c.type}</span></td>
-                    <td class="p-6"><span class="px-2 py-0.5 bg-theme/10 text-theme rounded text-[9px] font-bold uppercase">${c.bot}</span></td>
+                    <td class="p-6">
+                        <div class="flex flex-col gap-1 items-center">
+                            <span class="w-max px-2 py-0.5 bg-theme/10 text-theme rounded text-[9px] font-bold uppercase tracking-wider">${c.bot}</span>
+                            <span class="text-[9px] text-gray-500 italic truncate max-w-[150px]">${c.notes || ''}</span>
+                        </div>
+                    </td>
                     <td class="p-6"><span class="text-green-400 font-bold">${c.paid.toLocaleString()}€</span><br><span class="text-red-400 text-[10px]">Dû: ${c.due.toLocaleString()}€</span></td>
                     <td class="p-6">
                         <button onclick="dbDeleteClient('${c.id}')" class="text-gray-600 hover:text-red-500 transition-colors">
