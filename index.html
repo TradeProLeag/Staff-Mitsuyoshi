@@ -321,6 +321,34 @@
                     <input type="text" id="c-prenom"
                         class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
                 </div>
+                <div class="col-span-2">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Photo de Profil</label>
+                    <input type="file" id="c-photo" accept="image/*"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white file:bg-theme file:border-none file:px-3 file:py-1 file:rounded file:text-[10px] file:mr-4 file:cursor-pointer">
+                </div>
+                <div class="col-span-1">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Ville</label>
+                    <input type="text" id="c-city" placeholder="Ex: Paris"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                </div>
+                <div class="col-span-1">
+                    <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Pays</label>
+                    <select id="c-country" class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                        <option value="fr">France</option>
+                        <option value="be">Belgique</option>
+                        <option value="ch">Suisse</option>
+                        <option value="lu">Luxembourg</option>
+                        <option value="ca">Canada</option>
+                        <option value="us">États-Unis</option>
+                        <option value="gb">Royaume-Uni</option>
+                        <option value="ae">Émirats Arabes Unis</option>
+                        <option value="ma">Maroc</option>
+                        <option value="dz">Algérie</option>
+                        <option value="tn">Tunisie</option>
+                        <option value="sn">Sénégal</option>
+                        <option value="ci">Côte d'Ivoire</option>
+                    </select>
+                </div>
                 <div class="col-span-1">
                     <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Bot Utilisé</label>
                     <select id="c-bot"
@@ -404,6 +432,9 @@
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbm14bG55aGppZmd3eGNjeWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODQ2OTAsImV4cCI6MjA5MzY2MDY5MH0.i399f4l-BtlY4ydk8Igns6eo5RkR19yq2MYpCW_2N6k";
         const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
+        let currentEditId = null; // Track item being edited
+        let cachedData = { clients: [], agenda: [], tasks: [] };
+
         // --- AUTH ---
         async function handleLogin() {
             const email = document.getElementById('login-email').value;
@@ -441,7 +472,13 @@
             if (modal.classList.contains('hidden')) {
                 modal.classList.remove('hidden');
                 gsap.from(modal.querySelector('.glass'), { scale: 0.95, opacity: 0, duration: 0.3, ease: "back.out(1.7)" });
-            } else { modal.classList.add('hidden'); }
+            } else { 
+                modal.classList.add('hidden');
+                currentEditId = null; // Reset edit state
+                // Reset button texts
+                if(id === 'client-modal') document.getElementById('btn-save-client').innerText = "ENREGISTRER CLOUD";
+                if(id === 'agenda-modal') document.querySelector('#agenda-modal .btn-theme').innerText = "AJOUTER AU CLOUD";
+            }
         }
 
         // --- DATA STATE & OPS ---
@@ -460,10 +497,14 @@
             const { data: agenda } = await supabaseClient.from('agenda').select('*').order('date', { ascending: true });
             const { data: tasks } = await supabaseClient.from('tasks').select('*');
 
-            renderClients(clients || []);
-            renderAgenda(agenda || []);
-            renderTasks(tasks || []);
-            renderDashboard(clients || [], tasks || []);
+            cachedData.clients = clients || [];
+            cachedData.agenda = agenda || [];
+            cachedData.tasks = tasks || [];
+
+            renderClients(cachedData.clients);
+            renderAgenda(cachedData.agenda);
+            renderTasks(cachedData.tasks);
+            renderDashboard(cachedData.clients, cachedData.tasks);
         }
 
         // --- DB ACTIONS ---
@@ -478,24 +519,30 @@
                 type: document.getElementById('c-type').value,
                 paid: parseFloat(document.getElementById('c-paid').value) || 0,
                 due: parseFloat(document.getElementById('c-due').value) || 0,
-                notes: document.getElementById('c-notes').value
+                notes: document.getElementById('c-notes').value,
+                city: document.getElementById('c-city').value,
+                country_code: document.getElementById('c-country').value,
+                avatar_url: ""
             };
             
             if (!client.nom || !client.prenom) return alert('Nom et Prénom requis');
 
-            btn.innerText = "Synchronisation Cloud...";
+            btn.innerText = currentEditId ? "Mise à jour..." : "Synchronisation Cloud...";
             btn.disabled = true;
 
-            // Tentative 1 : avec 'notes'
-            let response = await supabaseClient.from('clients').insert([client]);
-            
-            // Tentative 2 : fallback vers 'desc' si 'notes' n'existe pas dans la DB
-            if (response.error && response.error.message.includes('notes')) {
-                console.log("Fallback vers colonne 'desc'...");
-                const legacyClient = { ...client };
-                delete legacyClient.notes;
-                legacyClient.desc = client.notes;
-                response = await supabaseClient.from('clients').insert([legacyClient]);
+            let response;
+            if (currentEditId) {
+                response = await supabaseClient.from('clients').update(client).eq('id', currentEditId);
+            } else {
+                response = await supabaseClient.from('clients').insert([client]);
+                
+                // Fallback legacy
+                if (response.error && response.error.message.includes('notes')) {
+                    const legacyClient = { ...client };
+                    delete legacyClient.notes;
+                    legacyClient.desc = client.notes;
+                    response = await supabaseClient.from('clients').insert([legacyClient]);
+                }
             }
 
             btn.innerText = originalText;
@@ -503,15 +550,33 @@
 
             if (!response.error) {
                 toggleModal('client-modal');
-                ['c-nom', 'c-prenom', 'c-paid', 'c-due', 'c-notes'].forEach(id => {
+                ['c-nom', 'c-prenom', 'c-paid', 'c-due', 'c-notes', 'c-photo', 'c-city'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.value = (id === 'c-paid' || id === 'c-due') ? 0 : '';
                 });
                 loadAllData();
             } else { 
-                console.error("Erreur Supabase détaillée:", response.error);
-                alert("Erreur Cloud : " + response.error.message + "\n\nConseil : Vérifiez que vous avez bien créé les tables dans Supabase."); 
+                console.error("Erreur détaillée:", response.error);
+                alert("Erreur Cloud : " + response.error.message); 
             }
+        }
+
+        function openEditClient(id) {
+            const c = cachedData.clients.find(x => x.id === id);
+            if(!c) return;
+            currentEditId = id;
+            document.getElementById('c-nom').value = c.nom;
+            document.getElementById('c-prenom').value = c.prenom;
+            document.getElementById('c-bot').value = c.bot;
+            document.getElementById('c-type').value = c.type;
+            document.getElementById('c-paid').value = c.paid;
+            document.getElementById('c-due').value = c.due;
+            document.getElementById('c-notes').value = c.notes || c.desc || '';
+            document.getElementById('c-city').value = c.city || '';
+            document.getElementById('c-country').value = c.country_code || 'fr';
+            
+            document.getElementById('btn-save-client').innerText = "METTRE À JOUR";
+            toggleModal('client-modal');
         }
 
         async function dbDeleteClient(id) {
@@ -528,12 +593,30 @@
                 content: document.getElementById('a-content').value
             };
             if (!note.title) return;
-            const { error } = await supabaseClient.from('agenda').insert([note]);
-            if (!error) {
+            
+            let response;
+            if(currentEditId) {
+                response = await supabaseClient.from('agenda').update(note).eq('id', currentEditId);
+            } else {
+                response = await supabaseClient.from('agenda').insert([note]);
+            }
+
+            if (!response.error) {
                 toggleModal('agenda-modal');
                 ['a-title', 'a-date', 'a-content'].forEach(id => document.getElementById(id).value = '');
                 loadAllData();
             }
+        }
+
+        function openEditAgenda(id) {
+            const a = cachedData.agenda.find(x => x.id === id);
+            if(!a) return;
+            currentEditId = id;
+            document.getElementById('a-title').value = a.title;
+            document.getElementById('a-date').value = a.date;
+            document.getElementById('a-content').value = a.content;
+            document.querySelector('#agenda-modal .btn-theme').innerText = "METTRE À JOUR";
+            toggleModal('agenda-modal');
         }
 
         async function dbDeleteAgenda(id) {
@@ -561,6 +644,16 @@
             loadAllData();
         }
 
+        async function dbEditTask(id) {
+            const t = cachedData.tasks.find(x => x.id === id);
+            if(!t) return;
+            const newText = prompt("Modifier la tâche :", t.text);
+            if(newText && newText !== t.text) {
+                await supabaseClient.from('tasks').update({ text: newText }).eq('id', id);
+                loadAllData();
+            }
+        }
+
         // --- RENDERING ---
         function renderDashboard(clients, tasks) {
             document.getElementById('stat-clients').innerText = clients.length;
@@ -583,18 +676,36 @@
         function renderClients(clients) {
             document.getElementById('client-table-body').innerHTML = clients.map(c => `
                 <tr class="hover:bg-white/[0.03] transition-colors">
-                    <td class="p-6 font-bold text-white text-sm">${c.prenom} ${c.nom}<br><span class="text-[8px] text-gray-500 font-bold uppercase">${c.type}</span></td>
+                    <td class="p-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-white/5 border border-white/10 overflow-hidden flex-shrink-0">
+                                ${c.avatar_url ? `<img src="${c.avatar_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px] text-gray-600">No Img</div>`}
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-bold text-white text-sm">${c.prenom} ${c.nom}</span>
+                                <div class="flex items-center gap-1">
+                                    <img src="https://flagcdn.com/w20/${c.country_code ? c.country_code.toLowerCase() : 'fr'}.png" class="w-3 h-2 object-contain opacity-70">
+                                    <span class="text-[8px] text-gray-500 font-bold uppercase tracking-widest">${c.city || 'Non renseigné'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
                     <td class="p-6">
                         <div class="flex flex-col gap-1 items-center">
                             <span class="w-max px-2 py-0.5 bg-theme/10 text-theme rounded text-[9px] font-bold uppercase tracking-wider">${c.bot}</span>
-                            <span class="text-[9px] text-gray-500 italic truncate max-w-[150px]">${c.notes || c.desc || ''}</span>
+                            <span class="text-[8px] text-gray-400 font-bold uppercase opacity-50">${c.type}</span>
                         </div>
                     </td>
                     <td class="p-6"><span class="text-green-400 font-bold">${c.paid.toLocaleString()}€</span><br><span class="text-red-400 text-[10px]">Dû: ${c.due.toLocaleString()}€</span></td>
                     <td class="p-6">
-                        <button onclick="dbDeleteClient('${c.id}')" class="text-gray-600 hover:text-red-500 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="openEditClient('${c.id}')" class="p-2 text-gray-500 hover:text-theme transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="dbDeleteClient('${c.id}')" class="p-2 text-gray-600 hover:text-red-500 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
                     </td>
                 </tr>`).join('') || '<tr><td colspan="4" class="p-20 text-center opacity-20 italic">Base de données vide.</td></tr>';
         }
@@ -602,7 +713,14 @@
         function renderAgenda(agenda) {
             document.getElementById('agenda-container').innerHTML = agenda.map(a => `
                 <div class="glass p-8 rounded-3xl relative group border-white/5 hover:border-theme/30 transition-all">
-                    <button onclick="dbDeleteAgenda('${a.id}')" class="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-red-500">X</button>
+                    <div class="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="openEditAgenda('${a.id}')" class="p-1 hover:bg-theme/10 rounded text-theme">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                        <button onclick="dbDeleteAgenda('${a.id}')" class="p-1 hover:bg-red-500/10 rounded text-red-500">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
                     <div class="text-[9px] text-theme font-bold uppercase mb-2 tracking-widest">${new Date(a.date).toLocaleDateString('fr-FR')}</div>
                     <h4 class="text-white font-serif italic text-xl mb-4">${a.title}</h4>
                     <p class="text-xs text-gray-400 leading-relaxed">${a.content}</p>
@@ -626,7 +744,14 @@
                             ${t.status !== 'doing' ? `<button onclick="dbMoveTask('${t.id}', 'doing')" class="hover:text-theme">Doing</button>` : ''}
                             ${t.status !== 'done' ? `<button onclick="dbMoveTask('${t.id}', 'done')" class="hover:text-green-400">Done</button>` : ''}
                         </div>
-                        <button onclick="dbDeleteTask('${t.id}')" class="text-red-500 opacity-0 group-hover:opacity-100 transition-all">X</button>
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                             <button onclick="dbEditTask('${t.id}')" class="text-theme">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="dbDeleteTask('${t.id}')" class="text-red-500">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
                     </div>`;
                 columns[t.status].appendChild(div);
             });
