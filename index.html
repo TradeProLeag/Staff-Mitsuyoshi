@@ -430,7 +430,7 @@
 
         function populateCountries() {
             const select = document.getElementById('c-country');
-            if(!select) return;
+            if (!select) return;
             select.innerHTML = Object.entries(allCountries)
                 .sort((a, b) => a[1].localeCompare(b[1]))
                 .map(([code, name]) => `<option value="${code.toLowerCase()}">${name}</option>`)
@@ -530,8 +530,29 @@
 
             if (!client.nom || !client.prenom) return alert('Nom et Prénom requis');
 
-            btn.innerText = currentEditId ? "Mise à jour..." : "Synchronisation Cloud...";
+            btn.innerText = currentEditId ? "Mise à jour..." : "Upload Photo...";
             btn.disabled = true;
+
+            // 1. Upload de la photo si présente (uniquement en mode création ou si changée)
+            const photoFile = document.getElementById('c-photo').files[0];
+            if (photoFile) {
+                const fileExt = photoFile.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabaseClient.storage
+                    .from('avatars')
+                    .upload(fileName, photoFile);
+
+                if (!uploadError) {
+                    const { data } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+                    client.avatar_url = data.publicUrl;
+                }
+            } else if (currentEditId) {
+                // En mode édition, si pas de nouvelle photo, on garde l'ancienne
+                const existing = cachedData.clients.find(x => x.id === currentEditId);
+                if (existing) client.avatar_url = existing.avatar_url;
+            }
+
+            btn.innerText = "Synchronisation Cloud...";
 
             let response;
             if (currentEditId) {
