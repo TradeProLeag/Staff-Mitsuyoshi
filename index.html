@@ -333,20 +333,9 @@
                 </div>
                 <div class="col-span-1">
                     <label class="text-[10px] uppercase text-gray-500 mb-2 block font-bold">Pays</label>
-                    <select id="c-country" class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
-                        <option value="fr">France</option>
-                        <option value="be">Belgique</option>
-                        <option value="ch">Suisse</option>
-                        <option value="lu">Luxembourg</option>
-                        <option value="ca">Canada</option>
-                        <option value="us">États-Unis</option>
-                        <option value="gb">Royaume-Uni</option>
-                        <option value="ae">Émirats Arabes Unis</option>
-                        <option value="ma">Maroc</option>
-                        <option value="dz">Algérie</option>
-                        <option value="tn">Tunisie</option>
-                        <option value="sn">Sénégal</option>
-                        <option value="ci">Côte d'Ivoire</option>
+                    <select id="c-country"
+                        class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-xs glow-border text-white">
+                        <!-- Peuplé par JS -->
                     </select>
                 </div>
                 <div class="col-span-1">
@@ -435,6 +424,19 @@
         let currentEditId = null; // Track item being edited
         let cachedData = { clients: [], agenda: [], tasks: [] };
 
+        const allCountries = {
+            "AF": "Afghanistan", "ZA": "Afrique du Sud", "AL": "Albanie", "DZ": "Algérie", "DE": "Allemagne", "AD": "Andorre", "AO": "Angola", "AG": "Antigua-et-Barbuda", "SA": "Arabie Saoudite", "AR": "Argentine", "AM": "Arménie", "AU": "Australie", "AT": "Autriche", "AZ": "Azerbaïdjan", "BS": "Bahamas", "BH": "Bahreïn", "BD": "Bangladesh", "BB": "Barbade", "BE": "Belgique", "BZ": "Belize", "BJ": "Bénin", "BT": "Bhoutan", "BY": "Biélorussie", "MM": "Birmanie", "BO": "Bolivie", "BA": "Bosnie-Herzégovine", "BW": "Botswana", "BR": "Brésil", "BN": "Brunei", "BG": "Bulgarie", "BF": "Burkina Faso", "BI": "Burundi", "KH": "Cambodge", "CM": "Cameroun", "CA": "Canada", "CV": "Cap-Vert", "CL": "Chili", "CN": "Chine", "CY": "Chypre", "CO": "Colombie", "KM": "Comores", "CG": "Congo", "CD": "Congo (RDC)", "KP": "Corée du Nord", "KR": "Corée du Sud", "CR": "Costa Rica", "CI": "Côte d'Ivoire", "HR": "Croatie", "CU": "Cuba", "DK": "Danemark", "DJ": "Djibouti", "DM": "Dominique", "EG": "Égypte", "AE": "Émirats Arabes Unis", "EC": "Équateur", "ER": "Érythrée", "ES": "Espagne", "EE": "Estonie", "US": "États-Unis", "ET": "Éthiopie", "FJ": "Fidji", "FI": "Finlande", "FR": "France", "GA": "Gabon", "GM": "Gambie", "GE": "Géorgie", "GH": "Ghana", "GR": "Grèce", "GD": "Grenade", "GT": "Guatemala", "GN": "Guinée", "GQ": "Guinée équatoriale", "GW": "Guinée-Bissau", "GY": "Guyana", "HT": "Haïti", "HN": "Honduras", "HU": "Hongrie", "IN": "Inde", "ID": "Indonésie", "IQ": "Irak", "IR": "Iran", "IE": "Irlande", "IS": "Islande", "IL": "Israël", "IT": "Italie", "JM": "Jamaïque", "JP": "Japon", "JO": "Jordanie", "KZ": "Kazakhstan", "KE": "Kenya", "KG": "Kirghizistan", "KI": "Kiribati", "KW": "Koweït", "LA": "Laos", "LS": "Lesotho", "LV": "Lettonie", "LB": "Liban", "LR": "Libéria", "LY": "Libye", "LI": "Liechtenstein", "LT": "Lituanie", "LU": "Luxembourg", "MK": "Macédoine", "MG": "Madagascar", "MY": "Malaisie", "MW": "Malawi", "MV": "Maldives", "ML": "Mali", "MT": "Malte", "MA": "Maroc", "MH": "Marshall", "MU": "Maurice", "MR": "Mauritanie", "MX": "Mexique", "FM": "Micronésie", "MD": "Moldavie", "MC": "Monaco", "MN": "Mongolie", "ME": "Monténégro", "MZ": "Mozambique", "NA": "Namibie", "NR": "Nauru", "NP": "Népal", "NI": "Nicaragua", "NE": "Niger", "NG": "Nigéria", "NO": "Norvège", "NZ": "Nouvelle-Zélande", "OM": "Oman", "UG": "Ouganda", "UZ": "Ouzbékistan", "PK": "Pakistan", "PW": "Palaos", "PS": "Palestine", "PA": "Panama", "PG": "Papouasie-Nouvelle-Guinée", "PY": "Paraguay", "NL": "Pays-Bas", "PE": "Pérou", "PH": "Philippines", "PL": "Pologne", "PT": "Portugal", "QA": "Qatar", "CF": "République centrafricaine", "DO": "République dominicaine", "CZ": "République tchèque", "RO": "Roumanie", "GB": "Royaume-Uni", "RU": "Russie", "RW": "Rwanda", "KN": "Saint-Christophe-et-Niévès", "SM": "Saint-Marin", "VC": "Saint-Vincent-et-les Grenadines", "LC": "Sainte-Lucie", "SB": "Salomon", "SV": "Salvador", "WS": "Samoa", "ST": "Sao Tomé-et-Principe", "SN": "Sénégal", "RS": "Serbie", "SC": "Seychelles", "SL": "Sierra Leone", "SG": "Singapour", "SK": "Slovaquie", "SI": "Slovénie", "SO": "Somalie", "SD": "Soudan", "SS": "Soudan du Sud", "LK": "Sri Lanka", "SE": "Suède", "CH": "Suisse", "SR": "Suriname", "SZ": "Swaziland", "SY": "Syrie", "TJ": "Tadjikistan", "TZ": "Tanzanie", "TD": "Tchad", "TH": "Thaïlande", "TL": "Timor oriental", "TG": "Togo", "TO": "Tonga", "TT": "Trinité-et-Tobago", "TN": "Tunisie", "TM": "Turkménistan", "TR": "Turquie", "TV": "Tuvalu", "UA": "Ukraine", "UY": "Uruguay", "VU": "Vanuatu", "VE": "Vénézuéla", "VN": "Vietnam", "YE": "Yémen", "ZM": "Zambie", "ZW": "Zimbabwe"
+        };
+
+        function populateCountries() {
+            const select = document.getElementById('c-country');
+            if(!select) return;
+            select.innerHTML = Object.entries(allCountries)
+                .sort((a, b) => a[1].localeCompare(b[1]))
+                .map(([code, name]) => `<option value="${code.toLowerCase()}">${name}</option>`)
+                .join('');
+        }
+
         // --- AUTH ---
         async function handleLogin() {
             const email = document.getElementById('login-email').value;
@@ -472,12 +474,12 @@
             if (modal.classList.contains('hidden')) {
                 modal.classList.remove('hidden');
                 gsap.from(modal.querySelector('.glass'), { scale: 0.95, opacity: 0, duration: 0.3, ease: "back.out(1.7)" });
-            } else { 
+            } else {
                 modal.classList.add('hidden');
                 currentEditId = null; // Reset edit state
                 // Reset button texts
-                if(id === 'client-modal') document.getElementById('btn-save-client').innerText = "ENREGISTRER CLOUD";
-                if(id === 'agenda-modal') document.querySelector('#agenda-modal .btn-theme').innerText = "AJOUTER AU CLOUD";
+                if (id === 'client-modal') document.getElementById('btn-save-client').innerText = "ENREGISTRER CLOUD";
+                if (id === 'agenda-modal') document.querySelector('#agenda-modal .btn-theme').innerText = "AJOUTER AU CLOUD";
             }
         }
 
@@ -488,6 +490,7 @@
                 document.getElementById('login-overlay').remove();
                 document.getElementById('main-nav').classList.remove('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
+                populateCountries();
                 loadAllData();
             }
         }
@@ -511,7 +514,7 @@
         async function dbSaveClient() {
             const btn = document.getElementById('btn-save-client');
             const originalText = btn.innerText;
-            
+
             const client = {
                 nom: document.getElementById('c-nom').value.trim(),
                 prenom: document.getElementById('c-prenom').value.trim(),
@@ -524,7 +527,7 @@
                 country_code: document.getElementById('c-country').value,
                 avatar_url: ""
             };
-            
+
             if (!client.nom || !client.prenom) return alert('Nom et Prénom requis');
 
             btn.innerText = currentEditId ? "Mise à jour..." : "Synchronisation Cloud...";
@@ -535,7 +538,7 @@
                 response = await supabaseClient.from('clients').update(client).eq('id', currentEditId);
             } else {
                 response = await supabaseClient.from('clients').insert([client]);
-                
+
                 // Fallback legacy
                 if (response.error && response.error.message.includes('notes')) {
                     const legacyClient = { ...client };
@@ -552,18 +555,18 @@
                 toggleModal('client-modal');
                 ['c-nom', 'c-prenom', 'c-paid', 'c-due', 'c-notes', 'c-photo', 'c-city'].forEach(id => {
                     const el = document.getElementById(id);
-                    if(el) el.value = (id === 'c-paid' || id === 'c-due') ? 0 : '';
+                    if (el) el.value = (id === 'c-paid' || id === 'c-due') ? 0 : '';
                 });
                 loadAllData();
-            } else { 
+            } else {
                 console.error("Erreur détaillée:", response.error);
-                alert("Erreur Cloud : " + response.error.message); 
+                alert("Erreur Cloud : " + response.error.message);
             }
         }
 
         function openEditClient(id) {
             const c = cachedData.clients.find(x => x.id === id);
-            if(!c) return;
+            if (!c) return;
             currentEditId = id;
             document.getElementById('c-nom').value = c.nom;
             document.getElementById('c-prenom').value = c.prenom;
@@ -574,7 +577,7 @@
             document.getElementById('c-notes').value = c.notes || c.desc || '';
             document.getElementById('c-city').value = c.city || '';
             document.getElementById('c-country').value = c.country_code || 'fr';
-            
+
             document.getElementById('btn-save-client').innerText = "METTRE À JOUR";
             toggleModal('client-modal');
         }
@@ -593,9 +596,9 @@
                 content: document.getElementById('a-content').value
             };
             if (!note.title) return;
-            
+
             let response;
-            if(currentEditId) {
+            if (currentEditId) {
                 response = await supabaseClient.from('agenda').update(note).eq('id', currentEditId);
             } else {
                 response = await supabaseClient.from('agenda').insert([note]);
@@ -610,7 +613,7 @@
 
         function openEditAgenda(id) {
             const a = cachedData.agenda.find(x => x.id === id);
-            if(!a) return;
+            if (!a) return;
             currentEditId = id;
             document.getElementById('a-title').value = a.title;
             document.getElementById('a-date').value = a.date;
@@ -646,9 +649,9 @@
 
         async function dbEditTask(id) {
             const t = cachedData.tasks.find(x => x.id === id);
-            if(!t) return;
+            if (!t) return;
             const newText = prompt("Modifier la tâche :", t.text);
-            if(newText && newText !== t.text) {
+            if (newText && newText !== t.text) {
                 await supabaseClient.from('tasks').update({ text: newText }).eq('id', id);
                 loadAllData();
             }
